@@ -5,6 +5,7 @@
 from enum import Enum
 from logging import raiseExceptions
 from typing import NamedTuple
+from xml.dom import SyntaxErr
 
 
 # The token types the Lexer recognizes.
@@ -210,18 +211,21 @@ class Lexer:
                 self.__read_next_char()
             while self.ch == " ":
                 self.__read_next_char()
-            if self.col > self.legal_indent_levels[-1]:
-                self.legal_indent_levels.append(self.col)
-                return Token(Tokentype.Indent, '', loc)
+            if self.ch != "\n":
+                if self.col > self.legal_indent_levels[-1]:
+                    self.legal_indent_levels.append(self.col)
+                    return Token(Tokentype.Indent, '', loc)
+                else:
+                    if self.col < self.legal_indent_levels[-1]:
+                        self.legal_indent_levels.pop()
+                        if self.col in self.legal_indent_levels:
+                            return Token(Tokentype.Dedent, '', loc)
+                        else:
+                            #return Token(Tokentype.Dedent, 'Illegal dedent', loc)
+                            raise SyntaxErrorException("Illegal dedent", loc)
             else:
-                if self.col < self.legal_indent_levels[-1]:
-                    self.legal_indent_levels.pop()
-                    if self.col in self.legal_indent_levels:
-                        return Token(Tokentype.Dedent, '', loc)
-                    else:
-                        #return Token(Tokentype.Dedent, 'Illegal dedent', loc)
-                        raise SyntaxErrorException("Illegal dedent", loc)
-                    
+                self.__read_next_char()
+            
         # Now, try to match a lexeme.
         if self.ch == '':
             token = Token(Tokentype.EOI, '', loc)
@@ -299,6 +303,8 @@ class Lexer:
         elif self.ch == '"':
             # Check for a string literal. Raise "Unterminated string"
             # syntax error exception if the string doesn't close on the line.
+            
+            # check string is between ascii range 32-126
             self.__read_next_char()
             str = ""
             while self.ch != '"':
@@ -308,15 +314,19 @@ class Lexer:
                         str += "\\"
                     if self.ch != '"' and self.ch != 'n' and self.ch != 't' and self.ch != '\\':
                         raise SyntaxErrorException('error: ' + self.ch + " not recognized", loc)
-                str += self.ch
+                if 32 <= ord(self.ch) <= 126:
+                    str += self.ch
+                else:
+                    raise SyntaxErrorException("Invalid character in string", loc)
                 self.__read_next_char()
             self.__read_next_char()
             token = Token(Tokentype.StringLiteral, str, loc)
-        
+       
         else:
             # Check for identifiers/reserved words.
             if ('a' <= self.ch <= 'z') or ('A' <= self.ch <= 'Z') or (self.ch == '_'):
                 # Match an identifier.
+
                 chars = [self.ch]
                 self.__read_next_char()
                 while ('a' <= self.ch <= 'z') or ('A' <= self.ch <= 'Z') or (self.ch == '_') or (self.ch.isdigit()):
@@ -332,12 +342,13 @@ class Lexer:
                 # Match a number literal.
                 chars = [self.ch]
                 self.__read_next_char()
+                if chars[0] == "0" and self.ch.isdigit():
+                    raise SyntaxErrorException("Illegal number", loc)
                 while self.ch.isdigit():
                     chars.append(self.ch)
                     self.__read_next_char()
                 if ('a' <= self.ch <= 'z') or ('A' <= self.ch <= 'Z') or (self.ch == '_'):
                     raise SyntaxErrorException("Illegal identifier", loc)                
-
                 token = Token(Tokentype.IntegerLiteral, ''.join(chars), loc)
             else:
                 # Return Unknown if no other known token is matched.
