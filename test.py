@@ -1,15 +1,11 @@
 # T-603-THYD Compilers
 # Project: Test driver for lexer
 #
-print("Hello\\o")
-def hello9():
-    a = 1+2
-    if 1 == 2:
-      print(1+2)
-      print(1)
-      print(111)
+"Hello\\o"
+def _hello9():
+    a = 123+2421*3242//22-123
+    if 1 == 1 and True and not False and True not in None:
+      print(a)
     elif 1 != 2:
-      print("Hello")
-print("Hello")
-print("Hello")
-print(1_)
+      "Hello"
+_hello9((a) -> b)

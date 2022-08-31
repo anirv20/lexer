@@ -236,6 +236,7 @@ class Lexer:
             self.__read_next_char()
             if self.ch == ">":
                 token = Token(Tokentype.Arrow, "->", loc)
+                self.__read_next_char()
         elif self.ch == "/":
             self.__read_next_char()
             if self.ch == "/":
@@ -334,7 +335,6 @@ class Lexer:
                 while self.ch.isdigit():
                     chars.append(self.ch)
                     self.__read_next_char()
-
                 if ('a' <= self.ch <= 'z') or ('A' <= self.ch <= 'Z') or (self.ch == '_'):
                     raise SyntaxErrorException("Illegal identifier", loc)                
 
@@ -345,8 +345,5 @@ class Lexer:
                 self.__read_next_char()
 
         self.beginning_of_logical_line = token.type == Tokentype.Newline
-
-        if self.eof:
-            token = Token(Tokentype.EOI, '', loc)
 
         return token
