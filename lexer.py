@@ -248,6 +248,9 @@ class Lexer:
                 self.__read_next_char()
             else:
                 raise SyntaxErrorException("/ not followed by /", loc)
+        elif self.ch == "%":
+            token = Token(Tokentype.OpModulus, self.ch, loc)
+            self.__read_next_char()
         elif self.ch == '<':
             self.__read_next_char()
             if self.ch == '=':
@@ -307,7 +310,7 @@ class Lexer:
             # check string is between ascii range 32-126
             self.__read_next_char()
             str = ""
-            while self.ch != '"':
+            while self.ch != '"' and not self.eof:
                 if self.ch == "\\":
                     self.__read_next_char()
                     if self.ch == "n" or self.ch == "t":
@@ -316,6 +319,8 @@ class Lexer:
                         raise SyntaxErrorException('error: ' + self.ch + " not recognized", loc)
                 if 32 <= ord(self.ch) <= 126:
                     str += self.ch
+                elif self.ch == "\n":
+                    raise SyntaxErrorException("Unterminated string", loc)
                 else:
                     raise SyntaxErrorException("Invalid character in string", loc)
                 self.__read_next_char()
