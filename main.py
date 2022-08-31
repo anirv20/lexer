@@ -5,7 +5,7 @@
 from lexer import SyntaxErrorException
 import lexer
 
-filename = 'test2.py'
+filename = 'test.py'
 with open(filename) as f:
     lex = lexer.Lexer(f)
     token = lex.next()

@@ -222,8 +222,6 @@ class Lexer:
                         #return Token(Tokentype.Dedent, 'Illegal dedent', loc)
                         raise SyntaxErrorException("Illegal dedent", loc)
                     
-            
-
         # Now, try to match a lexeme.
         if self.ch == '':
             token = Token(Tokentype.EOI, '', loc)
@@ -267,6 +265,8 @@ class Lexer:
             while self.ch != '"':
                 if self.ch == "\\":
                     self.__read_next_char()
+                    if self.ch == "n" or self.ch == "t":
+                        str += "\\"
                     if self.ch != '"' and self.ch != 'n' and self.ch != 't' and self.ch != '\\':
                         raise SyntaxErrorException('error: ' + self.ch + " not recognized", loc)
                 str += self.ch

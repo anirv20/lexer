@@ -1,9 +1,7 @@
-print("h")
-print("h")
 # T-603-THYD Compilers
 # Project: Test driver for lexer
 #
-print("He\\\"llo")
+print("Hello\\o")
 def hello():
     a = 1+2
     if 1 == 2:
