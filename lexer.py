@@ -3,6 +3,7 @@
 # Project: Lexer Skeleton for ChocoPy 2022
 #
 from enum import Enum
+from logging import raiseExceptions
 from typing import NamedTuple
 
 
@@ -175,7 +176,6 @@ class Lexer:
         self.beginning_of_logical_line = True
         self.eof = False
         self.__read_next_char()  # Read in the first input character (self.ch).
-        self.__remove_comment()
 
     def __remove_comment(self):
         self.__read_next_char()
@@ -188,7 +188,7 @@ class Lexer:
         Match the next token in input.
         :return: Token with information about the matched Tokentype.
         """
-        print(self.beginning_of_logical_line)
+        
         # Remove spaces, tabs, comments, and "empty" lines, if any, before matching the next Tokentype.
         while self.beginning_of_logical_line and self.ch == "\n":
             self.__read_next_char()
@@ -202,10 +202,9 @@ class Lexer:
         
         # Record the start location of the lexeme we're matching.
         loc = Location(self.line, self.col)
-
+        
         # Ensure indentation is correct, emitting (returning) an INDENT/DEDENT token if called for.
         if self.beginning_of_logical_line:
-            #go to the last space
             while self.ch == "\t":
                 self.col += 7
                 self.__read_next_char()
@@ -217,9 +216,12 @@ class Lexer:
             else:
                 if self.col < self.legal_indent_levels[-1]:
                     self.legal_indent_levels.pop()
-                    if self.col != self.legal_indent_levels[-1]:
+                    if self.col in self.legal_indent_levels:
+                        return Token(Tokentype.Dedent, '', loc)
+                    else:
+                        #return Token(Tokentype.Dedent, 'Illegal dedent', loc)
                         raise SyntaxErrorException("Illegal dedent", loc)
-                    return Token(Tokentype.Dedent, '', loc)
+                    
             
 
         # Now, try to match a lexeme.
