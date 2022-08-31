@@ -228,6 +228,21 @@ class Lexer:
         elif self.ch == '+':
             token = Token(Tokentype.OpPlus, self.ch, loc)
             self.__read_next_char()
+        elif self.ch == "*":
+            token = Token(Tokentype.OpMultiply, self.ch, loc)
+            self.__read_next_char()
+        elif self.ch == "-":
+            token = Token(Tokentype.OpMinus, self.ch, loc)
+            self.__read_next_char()
+            if self.ch == ">":
+                token = Token(Tokentype.Arrow, "->", loc)
+        elif self.ch == "/":
+            self.__read_next_char()
+            if self.ch == "/":
+                token = Token(Tokentype.OpIntDivide, "//", loc)
+                self.__read_next_char()
+            else:
+                raise SyntaxErrorException("/ not followed by /", loc)
         elif self.ch == '<':
             self.__read_next_char()
             if self.ch == '=':
@@ -253,9 +268,32 @@ class Lexer:
             self.__read_next_char()
             if self.ch == "=":
                 token = Token(Tokentype.OpNotEq, "!=", loc)
-                self.__read_next_char()        
+                self.__read_next_char()
+            else:
+                raise SyntaxErrorException("! not followed by =", loc)       
         elif self.ch == '\n':
             token = Token(Tokentype.Newline, self.ch, loc)
+            self.__read_next_char()
+        elif self.ch == '(':
+            token = Token(Tokentype.ParenthesisL, self.ch, loc)
+            self.__read_next_char()
+        elif self.ch == ')':
+            token = Token(Tokentype.ParenthesisR, self.ch, loc)
+            self.__read_next_char()
+        elif self.ch == '[':
+            token = Token(Tokentype.BracketL, self.ch, loc)
+            self.__read_next_char()
+        elif self.ch == ']':
+            token = Token(Tokentype.BracketR, self.ch, loc)
+            self.__read_next_char()
+        elif self.ch == ',':
+            token = Token(Tokentype.Comma, self.ch, loc)
+            self.__read_next_char()
+        elif self.ch == ':':
+            token = Token(Tokentype.Colon, self.ch, loc)
+            self.__read_next_char()
+        elif self.ch == '.':
+            token = Token(Tokentype.Period, self.ch, loc)
             self.__read_next_char()
         elif self.ch == '"':
             # Check for a string literal. Raise "Unterminated string"
