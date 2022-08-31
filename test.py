@@ -2,7 +2,7 @@
 # Project: Test driver for lexer
 #
 print("Hello\\o")
-def hello():
+def hello9():
     a = 1+2
     if 1 == 2:
       print(1+2)
@@ -12,4 +12,4 @@ def hello():
       print("Hello")
 print("Hello")
 print("Hello")
-print(1)
+print(1_)

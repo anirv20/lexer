@@ -196,7 +196,7 @@ class Lexer:
         while self.ch == '#':
             self.__remove_comment()
 
-        if (self.ch == " " or self.ch == "\t") and not self.beginning_of_logical_line:
+        while (self.ch == " " or self.ch == "\t") and not self.beginning_of_logical_line:
             self.__read_next_char()
 
         
@@ -318,13 +318,26 @@ class Lexer:
                 # Match an identifier.
                 chars = [self.ch]
                 self.__read_next_char()
-                ...
-                token = Token(Tokentype.Identifier, ''.join(chars), loc)
+                while ('a' <= self.ch <= 'z') or ('A' <= self.ch <= 'Z') or (self.ch == '_') or (self.ch.isdigit()):
+                    chars.append(self.ch)
+                    self.__read_next_char()
+                
+                word = ''.join(chars)
+                if word in self.__reserved_words:
+                    token = Token(self.__reserved_words[word], word, loc)
+                else:
+                    token = Token(Tokentype.Identifier, word, loc)
             elif self.ch.isdigit():
                 # Match a number literal.
                 chars = [self.ch]
                 self.__read_next_char()
-                ...
+                while self.ch.isdigit():
+                    chars.append(self.ch)
+                    self.__read_next_char()
+
+                if ('a' <= self.ch <= 'z') or ('A' <= self.ch <= 'Z') or (self.ch == '_'):
+                    raise SyntaxErrorException("Illegal identifier", loc)                
+
                 token = Token(Tokentype.IntegerLiteral, ''.join(chars), loc)
             else:
                 # Return Unknown if no other known token is matched.
@@ -332,5 +345,8 @@ class Lexer:
                 self.__read_next_char()
 
         self.beginning_of_logical_line = token.type == Tokentype.Newline
+
+        if self.eof:
+            token = Token(Tokentype.EOI, '', loc)
 
         return token
