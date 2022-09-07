@@ -191,16 +191,15 @@ class Lexer:
         """
         
         # Remove spaces, tabs, comments, and "empty" lines, if any, before matching the next Tokentype.
-        while self.beginning_of_logical_line and self.ch == "\n":
-            self.__read_next_char()
-
         while self.ch == '#':
             self.__remove_comment()
-
+        
         while (self.ch == " " or self.ch == "\t") and not self.beginning_of_logical_line:
             self.__read_next_char()
 
-        
+        while self.beginning_of_logical_line and self.ch == "\n":
+            self.__read_next_char()
+
         # Record the start location of the lexeme we're matching.
         loc = Location(self.line, self.col)
         
@@ -221,7 +220,6 @@ class Lexer:
                         if self.col in self.legal_indent_levels:
                             return Token(Tokentype.Dedent, '', loc)
                         else:
-                            #return Token(Tokentype.Dedent, 'Illegal dedent', loc)
                             raise SyntaxErrorException("Illegal dedent", loc)
             else:
                 self.__read_next_char()
