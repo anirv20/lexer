@@ -44,5 +44,38 @@ class Parser:
         return False
 
     # Finish implementing the parser. A call to parse, parses a single Boolean expression.
+    #S -> E eoi
     def parse(self):
-        ...
+        self.expr()
+        self.match(Tokentype.EOI)
+
+    #E -> E' or E | E'
+    def expr(self):
+        self.expr1()
+        if self.match_if(Tokentype.OpOr):
+            self.expr()
+    
+    #E' -> E'' and E' | E''
+    def expr1(self):
+        self.expr2()
+        if self.match_if(Tokentype.OpAnd):
+            self.expr1()
+    
+    # E'' -> not E | B
+    def expr2(self):
+        if self.match_if(Tokentype.OpNot):
+            self.expr()
+        else:
+            self.bool()
+    
+    # B -> True | False | ( E )
+    def bool(self):
+        if self.match_if(Tokentype.ParenthesisL):
+            self.expr()
+            self.match(Tokentype.ParenthesisR)
+        elif self.match_if(Tokentype.BoolTrueLiteral):
+            pass
+        else:
+            self.match(Tokentype.BoolFalseLiteral)
+
+
