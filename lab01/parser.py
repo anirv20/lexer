@@ -10,6 +10,11 @@
 
     becomes:
 
+    S -> E eoi
+    E -> E' or E | E'
+    E' -> E'' and E' | E''
+    E'' -> not E | B
+    B -> True | False | ( E )
 
 """
 
