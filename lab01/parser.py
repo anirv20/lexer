@@ -13,7 +13,7 @@
 
 """
 
-from lab01.lexer import Lexer, Tokentype, SyntaxErrorException
+from lexer import Lexer, Tokentype, SyntaxErrorException
 
 class Parser:
 
