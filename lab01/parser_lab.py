@@ -18,6 +18,7 @@
     becomes:
     
     S -> E eoi
+    
     E -> A E'
     E' -> or A E' | eps
     A -> N A'
