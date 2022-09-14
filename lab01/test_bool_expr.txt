@@ -1,1 +1,1 @@
-not True and False or True not False
+not True and not False or True and not True

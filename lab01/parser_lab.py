@@ -10,10 +10,19 @@
 
     becomes:
 
+    E -> E or A | A
+    A -> A and N | N
+    N -> not N | B
+    B -> True | False | ( E )
+
+    becomes:
+    
     S -> E eoi
-    E -> E' or E | E'
-    E' -> E'' and E' | E''
-    E'' -> not E | B
+    E -> A E'
+    E' -> or A E' | eps
+    A -> N A'
+    A' -> and N A' | eps
+    N -> not N | B
     B -> True | False | ( E )
 
 """
@@ -29,6 +38,7 @@ class Parser:
     # Helper function.
     def match(self, type):
         if self.token.type == type:
+            print("Matched ", self.token.type)
             self.token = self.lexer.next()
         else:
             text = "Syntax error: expected {:s} but got {:s} ({:s}).".format(
@@ -49,22 +59,32 @@ class Parser:
         self.expr()
         self.match(Tokentype.EOI)
 
-    #E -> E' or E | E'
+    #E -> A E'
     def expr(self):
-        self.expr1()
+        self.expr_and()
+        self.expr_marked()
+
+    # E' -> or A E' | eps
+    def expr_marked(self):
         if self.match_if(Tokentype.OpOr):
-            self.expr()
+            self.expr_and()
+            self.expr_marked()
     
-    #E' -> E'' and E' | E''
-    def expr1(self):
-        self.expr2()
+    #A -> N A'
+    def expr_and(self):
+        self.expr_not()
+        self.expr_and_marked()
+
+    # A' -> and N A' | eps
+    def expr_and_marked(self):
         if self.match_if(Tokentype.OpAnd):
-            self.expr1()
+            self.expr_not()
+            self.expr_and_marked()
     
-    # E'' -> not E | B
-    def expr2(self):
+    #N -> not N | B
+    def expr_not(self):
         if self.match_if(Tokentype.OpNot):
-            self.expr()
+            self.expr_not()
         else:
             self.bool()
     
