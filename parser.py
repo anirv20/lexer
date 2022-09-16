@@ -12,7 +12,7 @@ class Parser:
         print(self.token)
         self.token_peek = None
         self.indentation = 0
-        self.num_space = 1
+        self.num_space = 4
 
     # Helper function.
     def match(self, type):
@@ -73,6 +73,7 @@ class Parser:
                 self.match(Tokentype.ParenthesisR)
         else:
             self.pexpr()
+        self.indentation -= self.num_space
     
     def i_or_f(self):
         self.indentation += self.num_space
@@ -505,12 +506,11 @@ class Parser:
     def all_decl(self):
         self.indentation += self.num_space
         print(" " * self.indentation, "all_decl")
-        self.peek()
-        if self.token_peek.type == Tokentype.KwGlobal:
+        if self.token.type == Tokentype.KwGlobal:
             self.global_decl()
-        elif self.token_peek.type == Tokentype.KwNonLocal:
+        elif self.token.type == Tokentype.KwNonLocal:
             self.nonloc_decl()
-        elif self.token_peek.type == Tokentype.KwDef:
+        elif self.token.type == Tokentype.KwDef:
             self.func_def()
         else:
             self.var_def()
