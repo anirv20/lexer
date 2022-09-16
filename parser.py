@@ -1,5 +1,5 @@
 from lexer import Lexer, Tokentype, SyntaxErrorException
-import ast
+import astree
 
 class Parser:
 
