@@ -370,7 +370,7 @@ class Parser:
             if expr is AssignStmtNode:
                 # TODO: Create assign
                 ...
-            node = ExprStmt(expr)
+            node = expr
         return node
 
 
@@ -409,7 +409,7 @@ class Parser:
 
     def elif_stmts(self):
         elifs = []
-        elifs.extend(self.elif_stmt())
+        elifs.append(self.elif_stmt())
         elifs.extend(self.elif_stmts_m())
         return elifs
     
