@@ -423,7 +423,7 @@ class Parser:
     def elif_stmts_m(self):
         self.indentation += self.num_space
         print(" " * self.indentation, "elif_stmts_m")
-        if self.peek() == Tokentype.KwElif:
+        if self.token.type == Tokentype.KwElif:
             self.elif_stmts()
             self.elif_stmts_m()
         else:
@@ -573,7 +573,6 @@ class Parser:
         self.match(Tokentype.Newline)
         self.match(Tokentype.Indent)
         self.func_body()
-        print("Finished function body ******")
         self.match(Tokentype.Dedent)
         self.indentation -= self.num_space
 
@@ -656,11 +655,14 @@ class Parser:
         if self.token.type in [Tokentype.KwClass, Tokentype.KwDef, Tokentype.Identifier]:
             self.vfc_defs()
             if self.token.type not in [Tokentype.KwClass, Tokentype.KwDef, Tokentype.Identifier]: # check if stmt?
-                self.stmts()
-        elif self.match_if(Tokentype.EOI): # check if stmt
+                if self.match_if(Tokentype.EOI):
+                    pass
+                else:
+                    self.stmts()
+        elif self.match_if(Tokentype.EOI):
+            print("End of file")
             pass
         else:
             self.stmts()
         self.indentation -= self.num_space
-                
-      
+     
