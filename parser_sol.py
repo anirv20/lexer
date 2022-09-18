@@ -12,7 +12,7 @@ class Parser:
         print(self.token)
         self.token_peek = None
         self.indentation = 0
-        self.num_space = 4
+        self.num_space = 2
 
     # Helper function.
     def match(self, type):
@@ -283,12 +283,11 @@ class Parser:
     def stmt(self):
         self.indentation += self.num_space
         print(" " * self.indentation, "stmt")
-        self.peek()
-        if self.token_peek.type == Tokentype.KwIf:
+        if self.token.type == Tokentype.KwIf:
             self.if_stmt()
-        elif self.token_peek.type == Tokentype.KwWhile:
+        elif self.token.type == Tokentype.KwWhile:
             self.wh_stmt()
-        elif self.token_peek.type == Tokentype.KwFor:
+        elif self.token.type == Tokentype.KwFor:
             self.for_stmt()
         else:
             self.si_stmt()
@@ -519,8 +518,8 @@ class Parser:
     def all_decls_m(self):
         self.indentation += self.num_space
         print(" " * self.indentation, "all_decls_m")
-        self.peek()
-        if self.token_peek.type in [Tokentype.KwGlobal, Tokentype.KwNonLocal, Tokentype.KwDef, Tokentype.Identifier]:
+        #self.peek()
+        if self.token.type in [Tokentype.KwGlobal, Tokentype.KwNonLocal, Tokentype.KwDef, Tokentype.Identifier]:
             self.all_decl()
             self.all_decls_m()
         else:
@@ -541,7 +540,7 @@ class Parser:
         print(" " * self.indentation, "func_body")
         decls = [Tokentype.KwGlobal, Tokentype.KwNonLocal, Tokentype.KwDef, Tokentype.Identifier]
         if self.token.type in decls :
-            self.all_decl()
+            self.all_decls()
             self.stmts()
         else:
             self.stmts()

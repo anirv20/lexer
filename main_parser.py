@@ -1,4 +1,4 @@
-from parser import Parser
+from parser_sol import Parser
 from print_visitor import PrintVisitor
 
 filename = "test_parser.py"
