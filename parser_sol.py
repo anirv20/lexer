@@ -129,7 +129,7 @@ class Parser:
             lhs = self.uexpr()
             rhs = self.mexpr_m()
             node = BinaryOpExprNode(op, lhs, rhs)
-        return node
+            return node
 
 
     def mexpr(self):
@@ -150,86 +150,112 @@ class Parser:
             lhs = self.mexpr()
             rhs = self.aexpr_m()
             node = BinaryOpExprNode(op, lhs, rhs)
-        return node
+            return node
 
 
     def aexpr(self):
-        self.mexpr()
-        self.aexpr_m()
+        exprs = []
+        exprs.append(self.mexpr())
+        exprs.append(self.aexpr_m())
+        return exprs
 
     def rel_op(self):
         if self.match_if(Tokentype.OpEq):
-            return True
+            return Operator.Eq
         elif self.match_if(Tokentype.OpNotEq):
-            return True
+            return Operator.NotEq
         elif self.match_if(Tokentype.OpGt):
-            return True
-        elif self.match_if(Tokentype.OpGt):
-            return True
+            return Operator.Gt
+        elif self.match_if(Tokentype.OpLt):
+            return Operator.Lt
         elif self.match_if(Tokentype.OpLtEq):
-            return True
+            return Operator.LtEq
         elif self.match_if(Tokentype.OpGtEq):
-            return True
+            return Operator.GtEq
         elif self.match_if(Tokentype.OpIs):
-            return True
-        else:
-            return False
+            return Operator.Is
 
 
     def cexpr(self):
-        self.aexpr()
-        if self.rel_op():
-            self.aexpr()
+        lhs = self.aexpr()
+        node = lhs
+        if self.token.type in [Tokentype.OpEq, Tokentype.OpNotEq, Tokentype.OpGt, Tokentype.OpLt, Tokentype.OpLtEq, Tokentype.OpGtEq, Tokentype.OpIs]:
+            op = self.rel_op()
+            rhs = self.aexpr()
+            node = BinaryOpExprNode(op, lhs, rhs)
+        return node
     
     def not_expr(self):
         if self.match_if(Tokentype.OpNot):
-            pass
-        self.cexpr()
+            op = Operator.Not
+            operand = self.cexpr()
+            return UnaryOpExprNode(op, operand)
+        return self.cexpr()
 
     def and_expr_m(self):
         if self.match_if(Tokentype.OpAnd):
-            self.not_expr()
+            rhs = self.not_expr()
+            return rhs
         
     def and_expr(self):
-        self.not_expr()
-        self.and_expr_m()
+        lhs = self.not_expr()
+        rhs = self.and_expr_m()
+        if rhs:
+            return BinaryOpExprNode(Operator.And, lhs, rhs)
+        else:
+            return lhs
+
 
     def or_expr_m(self):
         if self.match_if(Tokentype.OpOr):
-            self.and_expr
-            self.or_expr_m
+            lhs = self.and_expr()
+            rhs = self.or_expr_m()
+            return BinaryOpExprNode(Operator.Or, lhs, rhs)
     
     def or_expr(self):
-        self.and_expr()
-        self.or_expr_m
+        lhs = self.and_expr()
+        rhs = self.or_expr_m()
+        if rhs:
+            return BinaryOpExprNode(Operator.Or, lhs, rhs)
+        else:
+            return lhs
 
     def expr(self):
-        self.or_expr()
+        lhs = self.or_expr()
+        node = lhs
         if self.match_if(Tokentype.KwIf):
-            self.expr()
+            condition = self.expr()
             self.match(Tokentype.KwElse)
-            self.expr()
+            else_expr = self.expr()
+            node = IfExprNode(condition, lhs, else_expr)
+        return node
             
     def lexpr(self):
+        lexeme = self.token.lexeme
         if self.match_if(Tokentype.BracketL):
-            self.args()
+            args = self.args()
             self.match(Tokentype.BracketR)
+            node = ListExprNode(args)
         elif self.match_if(Tokentype.Identifier):
-            pass
+            node = IdentifierExprNode(IdentifierNode(lexeme))
         else:
-            self.literal()
+            node = self.literal()
+        return node
     
     def pexpr(self):
         if self.match_if(Tokentype.ParenthesisL):
-            self.expr()
+            node = self.expr()
             self.match(Tokentype.ParenthesisR)
         else:
-            self.lexpr()
+            node = self.lexpr()
+        return node
 
     def args(self):
-        self.expr()
+        exprs = []
+        exprs.append(self.expr())
         if self.match_if(Tokentype.Comma):
-            self.args()
+            exprs.append(self.args())
+        return exprs
 
     def stmt(self):
         if self.token.type == Tokentype.KwIf:
@@ -369,9 +395,9 @@ class Parser:
         condition = self.expr()
         self.match(Tokentype.Colon)
         then_body, elifs = self.if_block()
+        else_body = []
         if self.match_if(Tokentype.KwElse):
             else_body = self.block()
-        else_body = [] if not else_body else else_body
         return IfStmtNode(condition, then_body, elifs, else_body)
 
     def if_block(self):
