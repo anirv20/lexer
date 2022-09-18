@@ -49,87 +49,109 @@ class Parser:
         return node
     
     def literal(self):
+        lexeme = self.token.lexeme
         if self.match_if(Tokentype.KwNone):
-            pass
+            node = NoneLiteralExprNode()
         elif self.match_if(Tokentype.BoolTrueLiteral):
-            pass
+            node = BooleanLiteralExprNode(True)
         elif self.match_if(Tokentype.BoolFalseLiteral):
-            pass
+            node = BooleanLiteralExprNode(False)
         elif self.match_if(Tokentype.IntegerLiteral):
-            pass
+            node = IntegerLiteralExprNode(int(lexeme))
         else:
             self.match(Tokentype.StringLiteral)
+            node = StringLiteralExprNode(lexeme)
+        return node
 
     def fexpr(self):
+        lexeme = self.token.lexeme
         if self.peek().type == Tokentype.ParenthesisL:
             if self.match_if(Tokentype.Identifier):
                 self.match(Tokentype.ParenthesisL)
-                self.args()
+                args = self.args() #list of exprnodes
                 self.match(Tokentype.ParenthesisR)
+                id_node = IdentifierNode(lexeme)
+                node = FunctionCallExprNode(id_node, args)
         else:
-            self.pexpr()
+            node = self.pexpr()
+        return node
     
     def i_or_f(self):
+        lexeme = self.token.lexeme
         self.match(Tokentype.Identifier)
+        node = IdentifierNode(lexeme)
         if self.match_if(Tokentype.ParenthesisL):
             if self.match_if(Tokentype.ParenthesisR):
                 pass
             else:
-                self.args()
-
+                args = self.args()
+            id_node = IdentifierNode(lexeme)
+            node = FunctionCallExprNode(id_node, args)
+        return node
 
     def mi_expr_m(self):
+        mi_exprs = []
         if self.match_if(Tokentype.Period):
-            self.i_or_f()
-            self.mi_expr_m()
+            mi_exprs.append(self.i_or_f())
+            mi_exprs.append(self.mi_expr_m())
         elif self.match_if(Tokentype.BracketL):
-            self.expr()
+            mi_exprs.append(self.expr())
             self.match(Tokentype.BracketR)
-            self.mi_expr_m()
+            mi_exprs.append(self.mi_expr_m())
         else:
             pass #eps
+        return mi_exprs
 
     def mi_expr(self):
-        self.fexpr()
-        self.mi_expr_m()
+        mi_expr = [self.fexpr()]
+        mi_expr.append(self.mi_expr_m())
+        return mi_expr
 
     def uexpr(self):
+        nodes = []
         if self.match_if(Tokentype.OpMinus):
-            self.uexpr()
+            nodes.append(self.uexpr())
         else:
-            self.mi_expr()
+            nodes.append(self.mi_expr())
+        return nodes
             
     def mul_op(self):
         if self.match_if(Tokentype.OpMultiply):
-            return True
+            return Operator.Mult
         elif self.match_if(Tokentype.OpIntDivide):
-            return True
+            return Operator.IntDivide
         elif self.match_if(Tokentype.OpModulus):
-            return True
-        else:
-            return False
+            return Operator.Modulus
 
     def mexpr_m(self):
-        if self.mul_op():
-            self.uexpr()
-            self.mexpr_m()   
+        if self.token.type in [Tokentype.OpMultiply, Tokentype.OpIntDivide, Tokentype.OpModulus]:
+            op = self.mul_op()
+            lhs = self.uexpr()
+            rhs = self.mexpr_m()
+            node = BinaryOpExprNode(op, lhs, rhs)
+        return node
+
 
     def mexpr(self):
-        self.uexpr()
-        self.mexpr_m()
+        exprs = []
+        exprs.append(self.uexpr())
+        exprs.append(self.mexpr_m())
+        return exprs
 
     def add_op(self):
         if self.match_if(Tokentype.OpPlus):
-            return True
+            return Operator.Plus
         elif self.match_if(Tokentype.OpMinus):
-            return True
-        else:
-            return False
+            return Operator.Minus
 
     def aexpr_m(self):
-        if self.add_op():
-            self.mexpr()
-            self.aexpr_m()
+        if self.token.lexeme in [Tokentype.OpPlus, Tokentype.OpMinus]:
+            op = self.add_op()
+            lhs = self.mexpr()
+            rhs = self.aexpr_m()
+            node = BinaryOpExprNode(op, lhs, rhs)
+        return node
+
 
     def aexpr(self):
         self.mexpr()
@@ -251,6 +273,7 @@ class Parser:
             self.expr()
             self.match(Tokentype.BracketR)
             self.target_m()
+        # TODO: add AST
 
     def target(self):
         if self.match_if(Tokentype.Identifier):
@@ -258,47 +281,59 @@ class Parser:
         else:
             self.cexpr()
             self.target_m()
+        # TODO: add AST
     
     def asgn_stmt_m(self):
+        targets = []
         if self.match_if(Tokentype.OpAssign):
-            self.target()
-            self.asgn_stmt_m()
+            targets.append(self.target())
+            targets.append(self.asgn_stmt_m())
+        return targets
         
     def asgn_stmt(self):
-        self.target()
-        if self.match_if(Tokentype.OpAssign):
-            self.expr()
-            self.asgn_stmt_m()
-            return True
-        else:
-            return False
+        targets = [self.target()]
+        self.match(Tokentype.OpAssign)
+        expr = self.expr()
+        targets.append(self.asgn_stmt_m())
+        return AssignStmtNode(targets, expr)
     
     def asgn_stmts_m(self):
-        if self.asgn_stmt():
-            self.asgn_stmts_m()
+        asgn_stmts = [self.asgn_stmt()]
+        asgn_stmts.append(self.asgn_stmts_m())
+        return asgn_stmts
     
     def asgn_stmts(self):
-        self.asgn_stmt()
-        self.asgn_stmts_m()
+        asgn_stmt_nodes = [self.asgn_stmt()]
+        asgn_stmt_nodes.append(self.asgn_stmts_m())
+        return asgn_stmt_nodes
 
     def si_stmt(self):
         if self.match_if(Tokentype.KwPass):
+            node = PassStmtNode()
             pass
         elif self.match_if(Tokentype.KwReturn):
             if self.token.type != Tokentype.Newline:
-               self.expr()
+               expr = self.expr()
+            node = ReturnStmtNode(expr)
         else:
-            self.expr()
-        # TODO: how to know if it is an expr or asgn_stmt? can't only use peek
+            expr = self.expr()
+            # TODO: Check if node is expression or assignment
+            if expr is AssignStmtNode:
+                # TODO: Create assign
+                ...
+            node = ExprStmt(expr)
+        return node
 
 
     def for_stmt(self):
         self.match(Tokentype.KwFor)
+        id_node = IdentifierNode(self.token.lexeme)
         self.match(Tokentype.Identifier)
         self.match(Tokentype.OpIn)
-        self.expr()
+        expr = self.expr()
         self.match(Tokentype.Colon)
-        self.block()
+        stmts = self.block()
+        return ForStmtNode(id_node, expr, stmts)
 
     def wh_stmt(self):
         self.match(Tokentype.KwWhile)
