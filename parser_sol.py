@@ -90,30 +90,32 @@ class Parser:
         return node
 
     def mi_expr_m(self):
-        mi_exprs = []
         if self.match_if(Tokentype.Period):
-            mi_exprs.append(self.i_or_f())
-            mi_exprs.append(self.mi_expr_m())
+            expr = self.i_or_f()
+            member = self.mi_expr_m()
+            return MemberExprNode(expr, member)
         elif self.match_if(Tokentype.BracketL):
-            mi_exprs.append(self.expr())
+            index = self.expr()
             self.match(Tokentype.BracketR)
-            mi_exprs.append(self.mi_expr_m())
+            li_expr = self.mi_expr_m()
+            return IndexExprNode(li_expr, index)
         else:
             pass #eps
-        return mi_exprs
+        
 
     def mi_expr(self):
-        mi_expr = [self.fexpr()]
-        mi_expr.append(self.mi_expr_m())
-        return mi_expr
+        expr = self.fexpr()
+        member = self.mi_expr_m()
+        node = MemberExprNode(expr, member)
+        return node
 
     def uexpr(self):
-        nodes = []
         if self.match_if(Tokentype.OpMinus):
-            nodes.append(self.uexpr())
+            node = self.uexpr()
+            node = UnaryOpExprNode(Operator.Minus, node)
         else:
-            nodes.append(self.mi_expr())
-        return nodes
+            node = self.mi_expr()
+        return node
             
     def mul_op(self):
         if self.match_if(Tokentype.OpMultiply):
@@ -133,10 +135,17 @@ class Parser:
 
 
     def mexpr(self):
-        exprs = []
-        exprs.append(self.uexpr())
-        exprs.append(self.mexpr_m())
-        return exprs
+        node = self.uexpr()
+        ops = {
+            Tokentype.OpMultiply: Operator.Mult,
+            Tokentype.OpModulus: Operator.Modulus,
+            Tokentype.OpIntDivide: Operator.IntDivide
+        }
+        if self.token.type in ops.keys():
+            op = ops[self.token.type]
+            rhs = self.mexpr_m()
+            node = BinaryOpExprNode(op, node, rhs)
+        return node
 
     def add_op(self):
         if self.match_if(Tokentype.OpPlus):
@@ -145,7 +154,7 @@ class Parser:
             return Operator.Minus
 
     def aexpr_m(self):
-        if self.token.lexeme in [Tokentype.OpPlus, Tokentype.OpMinus]:
+        if self.token.type in [Tokentype.OpPlus, Tokentype.OpMinus]:
             op = self.add_op()
             lhs = self.mexpr()
             rhs = self.aexpr_m()
@@ -154,10 +163,16 @@ class Parser:
 
 
     def aexpr(self):
-        exprs = []
-        exprs.append(self.mexpr())
-        exprs.append(self.aexpr_m())
-        return exprs
+        node = self.mexpr()
+        ops = {
+            Tokentype.OpPlus: Operator.Plus,
+            Tokentype.OpMinus: Operator.Minus
+        }
+        if self.token.type in ops.keys():
+            op = ops[self.token.type]
+            rhs = self.aexpr_m()
+            node = BinaryOpExprNode(op, node, rhs)
+        return node
 
     def rel_op(self):
         if self.match_if(Tokentype.OpEq):
@@ -254,7 +269,7 @@ class Parser:
         exprs = []
         exprs.append(self.expr())
         if self.match_if(Tokentype.Comma):
-            exprs.append(self.args())
+            exprs.extend(self.args())
         return exprs
 
     def stmt(self):
@@ -273,7 +288,7 @@ class Parser:
         stmts = []
         if self.token.type in [Tokentype.KwIf, Tokentype.KwWhile, Tokentype.KwFor, Tokentype.Identifier, Tokentype.KwPass, Tokentype.KwReturn, Tokentype.OpNot, Tokentype.OpMinus]:
             stmts.append(self.stmt())
-            stmts.append(self.stmts_m())
+            stmts.extend(self.stmts_m())
         else:
             pass
         return stmts
@@ -281,7 +296,7 @@ class Parser:
     def stmts(self):
         stmt_nodes = []
         stmt_nodes.append(self.stmt())
-        stmt_nodes.append(self.stmts_m())
+        stmt_nodes.extend(self.stmts_m())
         return stmt_nodes
 
     def block(self):
@@ -320,25 +335,25 @@ class Parser:
     def asgn_stmt_m(self):
         targets = []
         if self.match_if(Tokentype.OpAssign):
-            targets.append(self.target())
-            targets.append(self.asgn_stmt_m())
+            targets.extend(self.target())
+            targets.extend(self.asgn_stmt_m())
         return targets
         
     def asgn_stmt(self):
         targets = [self.target()]
         self.match(Tokentype.OpAssign)
         expr = self.expr()
-        targets.append(self.asgn_stmt_m())
+        targets.extend(self.asgn_stmt_m())
         return AssignStmtNode(targets, expr)
     
     def asgn_stmts_m(self):
         asgn_stmts = [self.asgn_stmt()]
-        asgn_stmts.append(self.asgn_stmts_m())
+        asgn_stmts.extend(self.asgn_stmts_m())
         return asgn_stmts
     
     def asgn_stmts(self):
         asgn_stmt_nodes = [self.asgn_stmt()]
-        asgn_stmt_nodes.append(self.asgn_stmts_m())
+        asgn_stmt_nodes.extend(self.asgn_stmts_m())
         return asgn_stmt_nodes
 
     def si_stmt(self):
@@ -386,16 +401,16 @@ class Parser:
     def elif_stmts_m(self):
         elifs = []
         if self.token.type == Tokentype.KwElif:
-            elifs.append(self.elif_stmts())
-            elifs.append(self.elif_stmts_m())
+            elifs.extend(self.elif_stmts())
+            elifs.extend(self.elif_stmts_m())
         else:
             pass #eps
         return elifs
 
     def elif_stmts(self):
         elifs = []
-        elifs.append(self.elif_stmt())
-        elifs.append(self.elif_stmts_m())
+        elifs.extend(self.elif_stmt())
+        elifs.extend(self.elif_stmts_m())
         return elifs
     
     def if_stmt(self):
@@ -470,7 +485,7 @@ class Parser:
         decls = []
         if self.token.type in [Tokentype.KwGlobal, Tokentype.KwNonLocal, Tokentype.KwDef, Tokentype.Identifier]:
             decls.append(self.all_decl())
-            decls.append(self.all_decls_m())
+            decls.extend(self.all_decls_m())
         else:
             pass #eps
         return decls
@@ -478,7 +493,7 @@ class Parser:
     def all_decls(self):
         decls = []
         decls.append(self.all_decl())
-        decls.append(self.all_decls_m())
+        decls.extend(self.all_decls_m())
         return decls
 
     def func_body(self):
@@ -493,7 +508,7 @@ class Parser:
     def typed_args(self):
         typed_args = [self.typed_var()]
         if self.match_if(Tokentype.Comma):
-            typed_args.append(self.typed_args())
+            typed_args.extend(self.typed_args())
         return typed_args
 
 
@@ -528,13 +543,13 @@ class Parser:
         vf_defs = []
         if self.token.type in [Tokentype.KwDef, Tokentype.Identifier]:
             vf_defs.append(self.vf_def())
-            vf_defs.append(self.vf_defs_m())
+            vf_defs.extend(self.vf_defs_m())
         return vf_defs
             
     def vf_defs(self):
         vf_defs = []
         vf_defs.append(self.vf_def())
-        vf_defs.append(self.vf_defs_m())
+        vf_defs.extend(self.vf_defs_m())
         return vf_defs 
     
     def class_body(self):
@@ -573,7 +588,7 @@ class Parser:
         nodes = []
         if self.token.type in [Tokentype.KwDef, Tokentype.KwClass, Tokentype.Identifier]:
             nodes.append(self.vfc_def())
-            nodes.append(self.vfc_defs_m())
+            nodes.extend(self.vfc_defs_m())
         else:
             pass #eps
         return nodes
@@ -581,7 +596,7 @@ class Parser:
     def vfc_defs(self):
         vfc_defs = []
         vfc_defs.append(self.vfc_def())
-        vfc_defs.append(self.vfc_defs_m())
+        vfc_defs.extend(self.vfc_defs_m())
         return vfc_defs
 
     def program(self):
