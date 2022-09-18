@@ -211,31 +211,37 @@ class Parser:
 
     def stmt(self):
         if self.token.type == Tokentype.KwIf:
-            self.if_stmt()
+            node = self.if_stmt()
         elif self.token.type == Tokentype.KwWhile:
-            self.wh_stmt()
+            node = self.wh_stmt()
         elif self.token.type == Tokentype.KwFor:
-            self.for_stmt()
+            node = self.for_stmt()
         else:
-            self.si_stmt()
+            node = self.si_stmt()
             self.match(Tokentype.Newline)
+        return node
 
     def stmts_m(self):
+        stmts = []
         if self.token.type in [Tokentype.KwIf, Tokentype.KwWhile, Tokentype.KwFor, Tokentype.Identifier, Tokentype.KwPass, Tokentype.KwReturn, Tokentype.OpNot, Tokentype.OpMinus]:
-            self.stmt()
-            self.stmts_m()
+            stmts.append(self.stmt())
+            stmts.append(self.stmts_m())
         else:
             pass
+        return stmts
 
     def stmts(self):
-        self.stmt()
-        self.stmts_m()
+        stmt_nodes = []
+        stmt_nodes.append(self.stmt())
+        stmt_nodes.append(self.stmts_m())
+        return stmt_nodes
 
     def block(self):
         self.match(Tokentype.Newline)
         self.match(Tokentype.Indent)
-        self.stmts()
+        stmts = self.stmts()
         self.match(Tokentype.Dedent)
+        return stmts
     
     def target_m(self):
         if self.match_if(Tokentype.Period):
@@ -296,54 +302,68 @@ class Parser:
 
     def wh_stmt(self):
         self.match(Tokentype.KwWhile)
-        self.expr()
+        expr = self.expr()
         self.match(Tokentype.Colon)
-        self.block()
+        stmts = self.block()
+        return WhileStmtNode(expr, stmts)
 
     def elif_stmt(self):
         self.match(Tokentype.KwElif)
-        self.expr()
+        expr = self.expr()
         self.match(Tokentype.Colon)
-        self.block()
+        stmts = self.block()
+        return (expr, stmts)
 
     def elif_stmts_m(self):
+        elifs = []
         if self.token.type == Tokentype.KwElif:
-            self.elif_stmts()
-            self.elif_stmts_m()
+            elifs.append(self.elif_stmts())
+            elifs.append(self.elif_stmts_m())
         else:
             pass #eps
+        return elifs
 
     def elif_stmts(self):
-        self.elif_stmt()
-        self.elif_stmts_m()
+        elifs = []
+        elifs.append(self.elif_stmt())
+        elifs.append(self.elif_stmts_m())
+        return elifs
     
     def if_stmt(self):
         self.match(Tokentype.KwIf)
-        self.expr()
+        condition = self.expr()
         self.match(Tokentype.Colon)
-        self.if_block()
+        then_body, elifs = self.if_block()
         if self.match_if(Tokentype.KwElse):
-            self.block()
+            else_body = self.block()
+        else_body = [] if not else_body else else_body
+        return IfStmtNode(condition, then_body, elifs, else_body)
 
     def if_block(self):
-        self.block()
-        self.elif_stmts_m()
+        if_body = self.block()
+        elifs = self.elif_stmts_m()
+        return if_body, elifs
     
     def var_def(self):
-        self.typed_var()
+        typed_var_node = self.typed_var()
         self.match(Tokentype.OpAssign)
-        self.literal()
+        value = self.literal()
         self.match(Tokentype.Newline)
+        return VarDefNode(typed_var_node, value)
 
     def nonloc_decl(self):
         self.match(Tokentype.KwNonLocal)
+        id_node = IdentifierNode(self.token.lexeme)
         self.match(Tokentype.Identifier)
         self.match(Tokentype.Newline)
+        return NonLocalDeclNode(id_node)
 
     def global_decl(self):
         self.match(Tokentype.KwGlobal)
+        id_node = IdentifierNode(self.token.lexeme)
         self.match(Tokentype.Identifier)
         self.match(Tokentype.Newline)
+        return GlobalDeclNode(id_node)
 
     def type(self):
         name = self.token.lexeme
@@ -368,33 +388,37 @@ class Parser:
         
     def all_decl(self):
         if self.token.type == Tokentype.KwGlobal:
-            self.global_decl()
+            node = self.global_decl()
         elif self.token.type == Tokentype.KwNonLocal:
-            self.nonloc_decl()
+            node = self.nonloc_decl()
         elif self.token.type == Tokentype.KwDef:
-            self.func_def()
+            node = self.func_def()
         else:
-            self.var_def()
+            node = self.var_def()
+        return node
     
     def all_decls_m(self):
+        decls = []
         if self.token.type in [Tokentype.KwGlobal, Tokentype.KwNonLocal, Tokentype.KwDef, Tokentype.Identifier]:
-            self.all_decl()
-            self.all_decls_m()
+            decls.append(self.all_decl())
+            decls.append(self.all_decls_m())
         else:
             pass #eps
+        return decls
 
     def all_decls(self):
-        self.all_decl()
-        self.all_decls_m()
+        decls = []
+        decls.append(self.all_decl())
+        decls.append(self.all_decls_m())
+        return decls
 
     def func_body(self):
         decls = [Tokentype.KwGlobal, Tokentype.KwNonLocal, Tokentype.KwDef, Tokentype.Identifier]
+        decl_nodes = []
         if self.token.type in decls :
-            self.all_decls()
-            self.stmts()
-        else:
-            self.stmts()
-        return None, None  
+            decl_nodes = self.all_decls()
+        stmt_nodes = self.stmts()
+        return decl_nodes, stmt_nodes  
         
     
     def typed_args(self):
@@ -406,7 +430,7 @@ class Parser:
 
     def func_def(self):
         self.match(Tokentype.KwDef)
-        name = self.token.lexeme
+        id_node = IdentifierNode(self.token.lexeme)
         self.match(Tokentype.Identifier)
         self.match(Tokentype.ParenthesisL)
         if self.match_if(Tokentype.ParenthesisR):
@@ -422,36 +446,50 @@ class Parser:
         self.match(Tokentype.Indent)
         decls, stmts = self.func_body()
         self.match(Tokentype.Dedent)
-        return FuncDefNode(name, param_list, return_type, decls, stmts)
+        return FuncDefNode(id_node, param_list, return_type, decls, stmts)
 
     def vf_def(self):
         if self.token.type == Tokentype.KwDef:
-            self.func_def()
+            node = self.func_def()
         else:
-            self.var_def()
+            node = self.var_def()
+        return node
 
     def vf_defs_m(self):
+        vf_defs = []
         if self.token.type in [Tokentype.KwDef, Tokentype.Identifier]:
-            self.vf_def()
-            self.vf_defs_m()
+            vf_defs.append(self.vf_def())
+            vf_defs.append(self.vf_defs_m())
+        return vf_defs
             
     def vf_defs(self):
-        self.vf_def()
-        self.vf_defs_m()
+        vf_defs = []
+        vf_defs.append(self.vf_def())
+        vf_defs.append(self.vf_defs_m())
+        return vf_defs 
     
     def class_body(self):
+        decl_nodes = []
         if self.match_if(Tokentype.KwPass):
             self.match(Tokentype.Newline)
         else:
-            self.vf_defs()
+            decl_nodes = self.vf_defs()
+        return decl_nodes
 
     def class_def(self):
-        match_tokens = [Tokentype.KwClass, Tokentype.Identifier, Tokentype.ParenthesisL, Tokentype.Identifier,
-            Tokentype.ParenthesisR, Tokentype.Colon, Tokentype.Newline, Tokentype.Indent]
-        for token in match_tokens:
-            self.match(token)
-        self.class_body()
+        self.match(Tokentype.KwClass)
+        id_node = IdentifierNode(self.token.lexeme)
+        self.match(Tokentype.Identifier)
+        self.match(Tokentype.ParenthesisL)
+        super_class = IdentifierNode(self.token.lexeme)
+        self.match(Tokentype.Identifier)
+        self.match(Tokentype.ParenthesisR)
+        self.match(Tokentype.Colon)
+        self.match(Tokentype.Newline)
+        self.match(Tokentype.Indent)
+        decls = self.class_body()
         self.match(Tokentype.Dedent)
+        return ClassDefNode(id_node, super_class, decls)
     
     def vfc_def(self):
         if self.token.type == Tokentype.KwDef:
@@ -472,14 +510,14 @@ class Parser:
         return nodes
 
     def vfc_defs(self):
-        vfc_defs = list()
+        vfc_defs = []
         vfc_defs.append(self.vfc_def())
         vfc_defs.append(self.vfc_defs_m())
         return vfc_defs
 
     def program(self):
-        stmts = list()
-        vfc_defs = list()
+        stmts = []
+        vfc_defs = []
         if self.token.type in [Tokentype.KwClass, Tokentype.KwDef, Tokentype.Identifier]:
             vfc_defs = self.vfc_defs()
             if self.token.type not in [Tokentype.KwClass, Tokentype.KwDef, Tokentype.Identifier]: # check if stmt?
