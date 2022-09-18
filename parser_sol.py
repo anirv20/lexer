@@ -293,21 +293,29 @@ class Parser:
     
     def target_m(self):
         if self.match_if(Tokentype.Period):
+            lexeme = self.token.lexeme
+            id_node = IdentifierNode(lexeme)
             self.match(Tokentype.Identifier)
-            self.target_m()
+            expr_object = self.target_m()
+            node = MemberExprNode(expr_object, id_node)
         elif self.match_if(Tokentype.BracketL):
-            self.expr()
+            index = self.expr()
             self.match(Tokentype.BracketR)
-            self.target_m()
-        # TODO: add AST
+            expr = self.target_m()
+            node = IndexExprNode(expr, index)
+        return node
 
     def target(self):
+        lexeme = self.token.lexeme
         if self.match_if(Tokentype.Identifier):
-            self.target_m()
+            member = self.target_m()
+            expr_object = IdentifierNode(lexeme)
+            node = MemberExprNode(expr_object, member)
         else:
-            self.cexpr()
-            self.target_m()
-        # TODO: add AST
+            expr = self.cexpr()
+            member = self.target_m()
+            node = MemberExprNode(expr, member)
+        return node
     
     def asgn_stmt_m(self):
         targets = []
@@ -562,7 +570,7 @@ class Parser:
         return node
 
     def vfc_defs_m(self):
-        nodes = list()
+        nodes = []
         if self.token.type in [Tokentype.KwDef, Tokentype.KwClass, Tokentype.Identifier]:
             nodes.append(self.vfc_def())
             nodes.append(self.vfc_defs_m())
