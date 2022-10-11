@@ -17,7 +17,7 @@ class Parser:
     # Helper function.
     def match(self, type):
         if self.token.type == type:
-            print(self.token)
+            #print(self.token)
             if self.token_peek is None:
                 self.token = self.lexer.next()
             else:
@@ -261,7 +261,6 @@ class Parser:
     
     def pexpr(self):
         if self.match_if(Tokentype.ParenthesisL):
-            print("asjdaksjdb")
             if self.token.type != Tokentype.ParenthesisR:
                 node = self.expr()
             self.match(Tokentype.ParenthesisR)

@@ -18,6 +18,8 @@ print(code)
 with open(filename) as f:
     p = parser.Parser(f)
     ast = p.parse()
+    #pv = print_visitor.PrintVisitor()
+    #pv.do_visit(ast)
 
 # Now do the semantic analysis.
 try:

@@ -7,6 +7,7 @@
 #
 
 import functools
+import symbol
 import astree as ast
 import visitor
 import symbol_table
@@ -35,7 +36,11 @@ class SymbolTableVisitor(visitor.Visitor):
 
     @visit.register
     def _(self, node: ast.IdentifierNode):
-        ...
+        if self.curr_sym_table.get_type() == "module":
+            s = Symbol(node.name, 0b0011)
+        else:
+            s = Symbol(node.name, 0b0010)
+        self.curr_sym_table.add_symbol(s)
 
     @visit.register
     def _(self, node: ast.NoneLiteralExprNode):
@@ -166,13 +171,25 @@ class SymbolTableVisitor(visitor.Visitor):
 
     @visit.register
     def _(self, node: ast.ClassDefNode):
+        st = symbol_table.SymbolTable(node.name)
+        parent = self.curr_sym_table
+        self.curr_sym_table.add_child(st)
+        self.curr_sym_table = st
+
         self.do_visit(node.name)
         self.do_visit(node.super_class)
         for d in node.declarations:
             self.do_visit(d)
 
+        self.curr_sym_table = parent
+
     @visit.register
     def _(self, node: ast.FuncDefNode):
+        st = symbol_table.SymbolTable(node.name)
+        parent = self.curr_sym_table
+        self.curr_sym_table.add_child(st)
+        self.curr_sym_table = st
+
         self.do_visit(node.name)
         for p in node.params:
             self.do_visit(p)
@@ -181,6 +198,8 @@ class SymbolTableVisitor(visitor.Visitor):
             self.do_visit(d)
         for s in node.statements:
             self.do_visit(s)
+        
+        self.curr_sym_table = parent
 
     @visit.register
     def _(self, node: ast.ProgramNode):

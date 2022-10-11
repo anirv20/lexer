@@ -9,10 +9,10 @@ class Symbol:
     An entry in a SymbolTable corresponding to an identifier in the source.
     """
     class Is(IntFlag):
-        ReadOnly = 8
-        Parameter = 4
-        Local = 2
-        Global = 1
+        ReadOnly = 8 #1000
+        Parameter = 4 #0100
+        Local = 2 #0010
+        Global = 1 #0001
 
     def __init__(self, name, flags, type_str=""):
         self._name = name
