@@ -178,9 +178,10 @@ class SymbolTableVisitor(visitor.Visitor):
         st = symbol_table.Class(node.name.name)
         parent = self.curr_sym_table
         self.curr_sym_table.add_child(st)
-        self.curr_sym_table = st
 
         self.do_visit(node.name)
+        self.curr_sym_table = st
+
         self.do_visit(node.super_class)
         for d in node.declarations:
             self.do_visit(d)
@@ -195,9 +196,11 @@ class SymbolTableVisitor(visitor.Visitor):
             st = symbol_table.Function(node.name.name)
         parent = self.curr_sym_table
         self.curr_sym_table.add_child(st)
-        self.curr_sym_table = st
 
         self.do_visit(node.name)
+        self.curr_sym_table = st
+
+
         for p in node.params:
             self.do_visit(p)
         self.do_visit(node.return_type)
