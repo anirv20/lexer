@@ -1,9 +1,9 @@
 #
 # Test semantic analyser. Version 1.0
-import parser
+import parser_sol as parser
 import disp_symtable
 import semantic_error
-import symtable_visitor
+import symtab_visitor
 import print_visitor
 # import type_visitor
 
@@ -21,7 +21,7 @@ with open(filename) as f:
 
 # Now do the semantic analysis.
 try:
-    st_visitor = symtable_visitor.SymbolTableVisitor()
+    st_visitor = symtab_visitor.SymbolTableVisitor()
     st_visitor.do_visit(ast)
 except semantic_error.ParserException as e:
     print(e.message)
