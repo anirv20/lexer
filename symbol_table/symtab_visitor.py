@@ -22,6 +22,7 @@ class SymbolTableVisitor(visitor.Visitor):
         self.built_ins = {'print': "", 'len': "int", 'input': 'str'}
         self.root_sym_table = None
         self.curr_sym_table = None
+        self.curr_var_name = None
         ...  # add more member variables as needed.
         pass
 
@@ -40,6 +41,7 @@ class SymbolTableVisitor(visitor.Visitor):
             s = Symbol(node.name, 0b0011)
         else:
             s = Symbol(node.name, 0b0010)
+        self.curr_var_name = node.name
         self.curr_sym_table.add_symbol(s)
 
     @visit.register
@@ -145,6 +147,8 @@ class SymbolTableVisitor(visitor.Visitor):
 
     @visit.register
     def _(self, node: ast.ClassTypeAnnotationNode):
+        s = self.curr_sym_table.lookup(self.curr_var_name)
+        s.set_type_str(node.name)
         pass
 
     @visit.register
@@ -171,7 +175,7 @@ class SymbolTableVisitor(visitor.Visitor):
 
     @visit.register
     def _(self, node: ast.ClassDefNode):
-        st = symbol_table.SymbolTable(node.name)
+        st = symbol_table.Class(node.name.name)
         parent = self.curr_sym_table
         self.curr_sym_table.add_child(st)
         self.curr_sym_table = st
@@ -185,7 +189,10 @@ class SymbolTableVisitor(visitor.Visitor):
 
     @visit.register
     def _(self, node: ast.FuncDefNode):
-        st = symbol_table.SymbolTable(node.name)
+        if self.curr_sym_table.get_type() == "function":
+            st = symbol_table.Function(node.name.name, is_nested=True)
+        else:
+            st = symbol_table.Function(node.name.name)
         parent = self.curr_sym_table
         self.curr_sym_table.add_child(st)
         self.curr_sym_table = st
