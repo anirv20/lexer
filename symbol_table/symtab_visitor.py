@@ -160,7 +160,13 @@ class SymbolTableVisitor(visitor.Visitor):
         if type(node.id_type) == ast.ClassTypeAnnotationNode:
             s = Symbol(node.identifier.name, flags, type_str=node.id_type.name)
         else:
-            s = Symbol(node.identifier.name, flags, type_str="[" + node.id_type.elem_type.name + "]")
+            layers = 0
+            list_node = node.id_type
+            while type(list_node) == ast.ListTypeAnnotationNode:
+                layers += 1
+                list_node = list_node.elem_type
+            out_type = "[" * layers + list_node.name + "]" * layers
+            s = Symbol(node.identifier.name, flags, type_str=out_type)
 
         self.curr_sym_table.add_symbol(s)
 

@@ -25,7 +25,7 @@ class Fooc(object):
     def m1() -> int:
         i : int = 0
         j : int = 0
-        l : [int] = None
+        l : [[[int]]] = None
         l = [1, 2, 3]
         for i in l:
             j = j + 1
