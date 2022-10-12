@@ -13,16 +13,16 @@ import visitor
 import symbol_table
 from symbol_table import Symbol
 import semantic_error
+from copy import copy
 
 
 class SymbolTableVisitor(visitor.Visitor):
 
     def __init__(self):
         # Built-in functions and their return types.
-        self.built_ins = {'print': "", 'len': "int", 'input': 'str'}
+        self.built_ins = {'print': "<None>", 'len': "int", 'input': 'str'}
         self.root_sym_table = None
         self.curr_sym_table = None
-        self.identifier_stack = []
         ...  # add more member variables as needed.
         pass
 
@@ -37,12 +37,11 @@ class SymbolTableVisitor(visitor.Visitor):
 
     @visit.register
     def _(self, node: ast.IdentifierNode):
-        if self.curr_sym_table.get_type() == "module":
-            s = Symbol(node.name, 0b0011)
-        else:
-            s = Symbol(node.name, 0b0010)
-        self.identifier_stack.append(node.name)
-        self.curr_sym_table.add_symbol(s)
+        if node.name in self.built_ins.keys():
+            ts = self.built_ins[node.name]
+            s = Symbol(node.name, 0b0001, type_str=ts)
+            self.curr_sym_table.add_symbol(s)
+        ...
 
     @visit.register
     def _(self, node: ast.NoneLiteralExprNode):
@@ -147,9 +146,6 @@ class SymbolTableVisitor(visitor.Visitor):
 
     @visit.register
     def _(self, node: ast.ClassTypeAnnotationNode):
-        name = self.identifier_stack.pop()
-        s = self.curr_sym_table.lookup(name)
-        #s.set_type_str(node.name)
         pass
 
     @visit.register
@@ -160,6 +156,13 @@ class SymbolTableVisitor(visitor.Visitor):
     def _(self, node: ast.TypedVarNode):
         self.do_visit(node.identifier)
         self.do_visit(node.id_type)
+        flags = 0b0011 if self.curr_sym_table.get_type() == "module" else 0b0010
+        if type(node.id_type) == ast.ClassTypeAnnotationNode:
+            s = Symbol(node.identifier.name, flags, type_str=node.id_type.name)
+        else:
+            s = Symbol(node.identifier.name, flags, type_str="[" + node.id_type.elem_type.name + "]")
+
+        self.curr_sym_table.add_symbol(s)
 
     @visit.register
     def _(self, node: ast.VarDefNode):
@@ -169,10 +172,16 @@ class SymbolTableVisitor(visitor.Visitor):
     @visit.register
     def _(self, node: ast.GlobalDeclNode):
         self.do_visit(node.variable)
+        s = copy(self.root_sym_table.lookup(node.variable.name))
+        s.set_flags(0b0001)
+        self.curr_sym_table.add_symbol(s)
 
     @visit.register
     def _(self, node: ast.NonLocalDeclNode):
         self.do_visit(node.variable)
+        s = copy(self.curr_sym_table.get_parent().lookup(node.variable.name))
+        s.set_flags(0b0000)
+        self.curr_sym_table.add_symbol(s)
 
     @visit.register
     def _(self, node: ast.ClassDefNode):
@@ -183,6 +192,12 @@ class SymbolTableVisitor(visitor.Visitor):
 
         self.do_visit(node.name)
         self.do_visit(node.super_class)
+
+        ss = Symbol(node.super_class.name, 0b0001, node.super_class.name)
+        flags = 0b0011 if self.curr_sym_table.get_parent().get_type() == "module" else 0b0010
+        s = Symbol(node.name.name, flags, type_str=node.name.name)
+        self.curr_sym_table.get_parent().add_symbol(s)
+        self.curr_sym_table.get_parent().add_symbol(ss)
         for d in node.declarations:
             self.do_visit(d)
 
@@ -197,18 +212,34 @@ class SymbolTableVisitor(visitor.Visitor):
         
         parent = self.curr_sym_table
         self.curr_sym_table.add_child(st)
-
         self.do_visit(node.name)
         self.curr_sym_table = st
 
+        #begin parameters
         for p in node.params:
             self.do_visit(p)
+            s = self.curr_sym_table.lookup(p.identifier.name)
+            s.set_flags(0b0110)
+        #end parameters
+
+        #begin return type / function identifier
         self.do_visit(node.return_type)
+        rt_type = node.return_type.name if node.return_type else "<None>"
+        flags = 0b0011 if self.curr_sym_table.get_parent().get_type() == "module" else 0b0010
+        s = Symbol(node.name.name, flags, type_str=rt_type)
+        self.curr_sym_table.get_parent().add_symbol(s)
+        #end return type / function identifier
+
+        #begin declarations
         for d in node.declarations:
             self.do_visit(d)
+            #TODO: should flags be changed?
+        #end declarations
+
+        #begin statements
         for s in node.statements:
             self.do_visit(s)
-        
+        #end statements
         self.curr_sym_table = parent
 
     @visit.register
