@@ -22,7 +22,7 @@ class SymbolTableVisitor(visitor.Visitor):
         self.built_ins = {'print': "", 'len': "int", 'input': 'str'}
         self.root_sym_table = None
         self.curr_sym_table = None
-        self.curr_var_name = None
+        self.identifier_stack = []
         ...  # add more member variables as needed.
         pass
 
@@ -41,7 +41,7 @@ class SymbolTableVisitor(visitor.Visitor):
             s = Symbol(node.name, 0b0011)
         else:
             s = Symbol(node.name, 0b0010)
-        self.curr_var_name = node.name
+        self.identifier_stack.append(node.name)
         self.curr_sym_table.add_symbol(s)
 
     @visit.register
@@ -147,8 +147,9 @@ class SymbolTableVisitor(visitor.Visitor):
 
     @visit.register
     def _(self, node: ast.ClassTypeAnnotationNode):
-        s = self.curr_sym_table.lookup(self.curr_var_name)
-        s.set_type_str(node.name)
+        name = self.identifier_stack.pop()
+        s = self.curr_sym_table.lookup(name)
+        #s.set_type_str(node.name)
         pass
 
     @visit.register
@@ -196,9 +197,10 @@ class SymbolTableVisitor(visitor.Visitor):
         
         parent = self.curr_sym_table
         self.curr_sym_table.add_child(st)
-        self.curr_sym_table = st
 
         self.do_visit(node.name)
+        self.curr_sym_table = st
+
         for p in node.params:
             self.do_visit(p)
         self.do_visit(node.return_type)
