@@ -1,18 +1,26 @@
 #
-#  Symbol table. Version 1.01
-# Don't change
-from enum import IntFlag
+#  Symbol table. Version 1.06
+#
+from enum import IntFlag, Enum, auto
+from typing import Optional
+
+
+class DeclType(Enum):
+    Variable = auto(),
+    Function = auto(),
+    Class = auto()
 
 
 class Symbol:
     """
     An entry in a SymbolTable corresponding to an identifier in the source.
     """
+
     class Is(IntFlag):
-        ReadOnly = 8 #1000
-        Parameter = 4 #0100
-        Local = 2 #0010
-        Global = 1 #0001
+        ReadOnly = 8
+        Parameter = 4
+        Local = 2
+        Global = 1
 
     def __init__(self, name, flags, type_str=""):
         self._name = name
@@ -189,9 +197,16 @@ class Class(SymbolTable):
     """
     A namespace of a class. This class inherits SymbolTable.
     """
-    def __init__(self, name):
+    def __init__(self, name, super_class):
         super().__init__(name)
         self._type = 'class'
+        self._super_class = super_class
+
+    def get_super_class(self):
+        """
+        Return the name of the superclass.
+        """
+        return self._super_class
 
     def get_methods(self):
         """
@@ -201,3 +216,47 @@ class Class(SymbolTable):
         for st in self._children:
             d[st.get_name()] = 1
         return tuple(d)
+
+    def get_methods_sym_table(self, name: str):
+        """
+        Return the child symbol-table of the given method if it exists, otherwise None.
+        """
+        for st in self._children:
+            if st.get_name() == name:
+                return st
+        return None
+
+
+def built_ins(name: str) -> Optional[tuple[str, DeclType]]:
+    """
+    Returns information about built-in entities.
+    """
+    built_ins_info = {'print': ("<None>", DeclType.Function),
+                      'len': ("int", DeclType.Function),
+                      'input': ('str', DeclType.Function),
+                      'object': ('object', DeclType.Class)}
+    return built_ins_info.get(name, None)
+
+
+def symbol_decl_type(st: SymbolTable, name: str) -> Optional[DeclType]:
+    """
+    Returns DeclType.Variable, DeclType.Function, or DeclType.Class depending on what symbol s defines.
+    (or None if s is not in the symbol table).
+    """
+    if name == "count":
+        print(name)
+
+    if not st:
+        b_in = built_ins(name)
+        return b_in[1] if b_in else None
+    symbol = st.lookup(name)
+    if symbol and symbol.is_local():
+        for cst in st.get_children():
+            if name == cst.get_name():
+                if cst.get_type() == 'function':
+                    return DeclType.Function
+                elif cst.get_type() == 'class':
+                    return DeclType.Class
+        return DeclType.Variable
+    else:
+        return symbol_decl_type(st.get_parent(), name)

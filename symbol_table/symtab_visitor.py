@@ -176,7 +176,7 @@ class SymbolTableVisitor(visitor.Visitor):
 
     @visit.register
     def _(self, node: ast.ClassDefNode):
-        st = symbol_table.Class(node.name.name)
+        st = symbol_table.Class(node.name.name, symbol_table.built_ins("object"))
         parent = self.curr_sym_table
         self.curr_sym_table.add_child(st)
         self.curr_sym_table = st
