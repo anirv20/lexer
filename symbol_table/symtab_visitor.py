@@ -207,6 +207,9 @@ class SymbolTableVisitor(visitor.Visitor):
             out_type = "[" * layers + list_node.name + "]" * layers
             s = Symbol(node.identifier.name, flags, type_str=out_type)
 
+        if node.identifier.name in self.curr_sym_table.get_identifiers():
+            raise RedefinedIdentifierException(node.identifier.name, self.curr_sym_table.get_name())
+
         self.curr_sym_table.add_symbol(s)
 
     @visit.register
