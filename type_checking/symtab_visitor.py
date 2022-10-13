@@ -130,6 +130,39 @@ class SymbolTableVisitor(visitor.Visitor):
     @visit.register
     def _(self, node: ast.FunctionCallExprNode):
         self.do_visit(node.identifier)
+
+        is_global = False
+        non_local = False
+        local = False
+        symbol = None
+
+        # Check globals
+        globals = list(self.root_sym_table.get_identifiers())
+        if node.identifier.name in globals:
+            is_global = True
+            symbol = self.root_sym_table.lookup(node.identifier.name)
+
+        # Check parents
+        locals = []
+        st = self.curr_sym_table
+        while st.is_nested():
+            st = st.get_parent()
+            locals.extend(st.get_identifiers())
+            if node.identifier.name in locals:
+                non_local = True
+                symbol = st.lookup(node.identifier.name)
+                break
+        # Check locals
+        if node.identifier.name in self.curr_sym_table.get_identifiers():
+            local = True
+            symbol = self.curr_sym_table.lookup(node.identifier.name)
+
+        if local or is_global or non_local:
+            s = Symbol(node.identifier.name, 0b0000, type_str=symbol.get_type_str())
+            self.curr_sym_table.add_symbol(s)
+        else:
+            raise UndefinedIdentifierException(node.identifier.name, self.curr_sym_table.get_name())
+
         for a in node.args:
             self.do_visit(a)
 

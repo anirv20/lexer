@@ -1,6 +1,6 @@
 #
 # Test semantic analyser. Version 1.2
-from parser_sol import Parser
+from parser_david import Parser
 import disp_symtable
 import semantic_error
 import symtab_visitor as symtable_visitor
@@ -20,8 +20,8 @@ print(code)
 with open(filename) as f:
     p = Parser(f)
     ast = p.parse()
-    pv = print_visitor.PrintVisitor()
-    pv.do_visit(ast)
+    #pv = print_visitor.PrintVisitor()
+    #pv.do_visit(ast)
 
 # Do the symbol-table construction.
 try:
