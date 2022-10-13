@@ -111,7 +111,7 @@ class Parser:
     def mi_expr(self):
         expr = self.fexpr()
         print(expr)
-        if self.token.type == Tokentype.Period or self.token_peek  == Tokentype.BracketL:
+        if self.token.type == Tokentype.Period or self.token.type  == Tokentype.BracketL:
             member = self.mi_expr_m()
             return MemberExprNode(expr, member)
         return expr
