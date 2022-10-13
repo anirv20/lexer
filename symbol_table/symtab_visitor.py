@@ -209,7 +209,7 @@ class SymbolTableVisitor(visitor.Visitor):
 
         if node.identifier.name in self.curr_sym_table.get_identifiers():
             raise RedefinedIdentifierException(node.identifier.name, self.curr_sym_table.get_name())
-
+        #TODO: Add declarationexception
         self.curr_sym_table.add_symbol(s)
 
     @visit.register
