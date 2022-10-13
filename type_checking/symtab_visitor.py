@@ -21,7 +21,7 @@ class SymbolTableVisitor(visitor.Visitor):
 
     def __init__(self):
         # Built-in functions and their return types.
-        self.built_ins = {'print': "<None>", 'len': "int", 'input': 'str'}
+        self.built_ins = {'print': '<None>', 'len': "int", 'input': 'str', 'object': 'object'}
         self.root_sym_table = None
         self.curr_sym_table = None
         ...  # add more member variables as needed.
@@ -38,7 +38,7 @@ class SymbolTableVisitor(visitor.Visitor):
 
     @visit.register
     def _(self, node: ast.IdentifierNode):
-        if node.name in self.built_ins.keys():
+        if node.name in self.built_ins.keys() and node.name != "object":
             ts = self.built_ins[node.name]
             s = Symbol(node.name, 0b0001, type_str=ts)
             self.curr_sym_table.add_symbol(s)
@@ -88,14 +88,14 @@ class SymbolTableVisitor(visitor.Visitor):
             local = True
             symbol = self.curr_sym_table.lookup(node.identifier.name)
 
-        if is_global:
+        if local:
+            pass
+        elif is_global:
             s = Symbol(node.identifier.name, 0b1001, type_str=symbol.get_type_str())
             self.curr_sym_table.add_symbol(s)
         elif non_local:
             s = Symbol(node.identifier.name, 0b1000, type_str=symbol.get_type_str())
             self.curr_sym_table.add_symbol(s)
-        elif local:
-            pass
         else:
             raise UndefinedIdentifierException(node.identifier.name, self.curr_sym_table.get_name())
 
@@ -241,11 +241,11 @@ class SymbolTableVisitor(visitor.Visitor):
         self.do_visit(node.name)
         self.do_visit(node.super_class)
 
-        ss = Symbol(node.super_class.name, 0b0001, node.super_class.name)
+        #ss = Symbol(node.super_class.name, 0b0001, node.super_class.name)
         flags = 0b0011 if self.curr_sym_table.get_parent().get_type() == "module" else 0b0010
         s = Symbol(node.name.name, flags, type_str=node.name.name)
         self.curr_sym_table.get_parent().add_symbol(s)
-        self.curr_sym_table.get_parent().add_symbol(ss)
+        #self.curr_sym_table.get_parent().add_symbol(ss)
         for d in node.declarations:
             self.do_visit(d)
 
