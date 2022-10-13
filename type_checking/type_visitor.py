@@ -367,6 +367,9 @@ class TypeVisitor(visitor.Visitor):
     @visit.register
     def _(self, node: ast.UnaryOpExprNode):
         self.do_visit(node.operand)
+        if node.operand.get_type_str() != "bool" or node.operand.get_type_str() != "int":
+            self.type_error(node, node.operand.get_type_str(), "")
+
 
     @visit.register
     def _(self, node: ast.IfExprNode):

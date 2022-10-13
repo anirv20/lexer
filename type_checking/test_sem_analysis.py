@@ -20,6 +20,8 @@ print(code)
 with open(filename) as f:
     p = Parser(f)
     ast = p.parse()
+    pv = print_visitor.PrintVisitor()
+    pv.do_visit(ast)
 
 # Do the symbol-table construction.
 try:

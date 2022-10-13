@@ -95,7 +95,10 @@ class Parser:
         if self.match_if(Tokentype.Period):
             expr = self.i_or_f()
             member = self.mi_expr_m()
-            return MemberExprNode(expr, member)
+            if member:
+                return MemberExprNode(expr, member)
+            else:
+                return expr
         elif self.match_if(Tokentype.BracketL):
             index = self.expr()
             self.match(Tokentype.BracketR)
@@ -107,9 +110,11 @@ class Parser:
 
     def mi_expr(self):
         expr = self.fexpr()
-        member = self.mi_expr_m()
-        node = MemberExprNode(expr, member)
-        return node
+        print(expr)
+        if self.token.type == Tokentype.Period or self.token_peek  == Tokentype.BracketL:
+            member = self.mi_expr_m()
+            return MemberExprNode(expr, member)
+        return expr
 
     def uexpr(self):
         if self.match_if(Tokentype.OpMinus):
@@ -372,7 +377,7 @@ class Parser:
             node = ReturnStmtNode(expr)
         else:
             expr = self.expr()
-            if type(expr) in [IdentifierExprNode, MemberExprNode, IndexExprNode]:
+            if isinstance(expr, ExprNode):
                 if self.token.type == Tokentype.OpAssign:
                     node = self.asgn_stmt(target=expr)
                 else:
