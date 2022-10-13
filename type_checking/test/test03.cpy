@@ -29,6 +29,7 @@ class Fooc(object):
         j : int = 0
         l : [int] = None
         l = [1, 2, 3]
+        l[1]
         for i in l:
             j = j + 1
         return j

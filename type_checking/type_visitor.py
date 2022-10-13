@@ -367,20 +367,31 @@ class TypeVisitor(visitor.Visitor):
     @visit.register
     def _(self, node: ast.UnaryOpExprNode):
         self.do_visit(node.operand)
-        if node.operand.get_type_str() != "bool" or node.operand.get_type_str() != "int":
-            self.type_error(node, node.operand.get_type_str(), "")
+        if node.operand.get_type_str() != "bool" and node.operand.get_type_str() != "int":
+            type_out = "int" if node.op == Operator.Minus else "bool"
+            self.type_error(node, node.operand.get_type_str(), type_out)
+        if node.operand.get_type_str() == "bool" and node.op != Operator.Not:
+            self.type_error(node, "int", node.operand.get_type_str())
+        if node.operand.get_type_str() == "int" and node.op != Operator.Minus:
+            self.type_error(node, "bool", node.operand.get_type_str())
 
 
     @visit.register
     def _(self, node: ast.IfExprNode):
         self.do_visit(node.condition)
+        if node.condition.get_type_str() != 'bool':
+            self.type_error(node, node.condition.get_type_str(), 'bool')        
         self.do_visit(node.then_expr)
         self.do_visit(node.else_expr)
 
     @visit.register
     def _(self, node: ast.IndexExprNode):
         self.do_visit(node.list_expr)
+        if not (self.t_env.is_list_type(node.list_expr.get_type_str()) or node.list_expr.get_type_str() == "str"):
+            self.type_error(node, node.list_expr.get_type_str(), 'str or list')
         self.do_visit(node.index)
+        if node.index.get_type_str() != "int":
+            self.type_error(node, node.index.get_type_str(), 'int')
 
     @visit.register
     def _(self, node: ast.ListExprNode):
