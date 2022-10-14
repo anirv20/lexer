@@ -25,14 +25,14 @@ class Fooc(object):
     m0: int = 0
 
     def m1(self : "Fooc") -> int:
-        i : int = 0
+        i : str = ""
         j : int = 0
-        l : [int] = None
-        l = [1, 2, 3]
-        l[1]
+        l : [str] = None
+        l = ["123", "123", "123"]
         for i in l:
             j = j + 1
         return j
+
 
 f: Fooc = None
 
@@ -43,3 +43,4 @@ inp = input()
 x = len(inp)
 print("Hello")
 print(f.m1())
+

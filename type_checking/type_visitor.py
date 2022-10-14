@@ -394,16 +394,41 @@ class TypeVisitor(visitor.Visitor):
             self.type_error(node, node.index.get_type_str(), 'int')
 
     @visit.register
-    def _(self, node: ast.ListExprNode):
+    def _(self, node: ast.ListExprNode): #[1, 2, 3]
         for e in node.elements:
             self.do_visit(e)
+        join_type = None
+        if len(node.elements) == 0:
+            node.set_type_str("<Empty>")
+        else:
+            join_type = node.elements[0].get_type_str()
+        for e in node.elements:
+            if node.elements.index(e)+1 < len(node.elements):
+                join_type = self.t_env.join(join_type, node.elements[node.elements.index(e)+1].get_type_str())
+        if join_type:
+            node.set_type_str(join_type)
+
 
     @visit.register
     def _(self, node: ast.ReturnStmtNode):
-        # Note, if there is no return expression, set the type to return type to <None>.
+        # Note, if there is no return expression, set the return type to <None>.
         # Also, throw and exception if return statement is used outside a function
         #    self.invalid_use_error(node, "return statement used outside a function")
         self.do_visit(node.expr)
+        if not node.expr:
+            return_type = "<None>"
+        else:
+            return_type = node.expr.get_type_str()
+        st = self.t_env.get_scope_symbol_table()
+        if type(st) == symbol_table.Function:
+            signature = self.get_signature(st)
+            if signature.return_type in ["bool", "int", "str"] and return_type == "<None>":
+                self.type_error(node, signature.return_type, return_type)
+            elif signature.return_type != return_type:
+                self.type_error(node, signature.return_type, return_type)
+        else:
+            self.invalid_use_error(node, "return statement used outside of a function")
+
 
     @visit.register
     def _(self, node: ast.AssignStmtNode):
@@ -412,9 +437,22 @@ class TypeVisitor(visitor.Visitor):
             self.do_visit(t)
         self.do_visit(node.expr)
 
+        expr_type = node.expr.get_type_str()
+        if type(node.expr) == ast.ListExprNode:
+            expr_type = "[" + node.expr.get_type_str() + "]"
+
+        if len(node.targets) > 1 and node.expr.get_type_str() == "<None>":
+            self.type_error(node, "[<None>]", "multi-var-assignment")
+        for t in node.targets:
+            if t.get_type_str() != expr_type:
+               self.type_error(node, t.get_type_str(), node.expr.get_type_str())
+        
+
     @visit.register
     def _(self, node: ast.WhileStmtNode):
         self.do_visit(node.condition)
+        if node.condition.get_type_str() != "bool":
+            self.type_error(node, node.condition.get_type_str(), "bool")
         for s in node.body:
             self.do_visit(s)
 
@@ -423,5 +461,19 @@ class TypeVisitor(visitor.Visitor):
         # Note,we can iterate over str and list types. For strings the identifier type will also be a str.
         self.do_visit(node.identifier)
         self.do_visit(node.iterable)
+
+        if not (self.t_env.is_list_type(node.iterable.get_type_str()) or node.iterable.get_type_str() == "str"):
+            self.type_error(node, node.iterable.get_type_str(), 'str or list')
+        
+        st = self.t_env.get_scope_symbol_table()
+        id_symbol = st.lookup(node.identifier.name)
+        if self.t_env.is_list_type(node.iterable.get_type_str()):
+            if id_symbol.get_type_str() != self.t_env.list_elem_type(node.iterable.get_type_str()):
+                self.type_error(node, id_symbol.get_type_str(), self.t_env.list_elem_type(node.iterable.get_type_str()))
+
+        if node.iterable.get_type_str() == "str":
+            if id_symbol.get_type_str() != "str":
+                self.type_error(node, id_symbol.get_type_str(), "str")
+
         for s in node.body:
             self.do_visit(s)
