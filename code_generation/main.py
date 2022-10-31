@@ -15,7 +15,7 @@
 #
 import pathlib
 import error
-import parser
+import parser_sol as parser
 import type_env
 import symtable_visitor
 import disp_symtable

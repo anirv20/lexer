@@ -240,19 +240,64 @@ class ICGVisitor(visitor.Visitor):
     def _(self, node: ast.BooleanLiteralExprNode):
         # Hints:
         #  - Boolean values are represented with integers (0: False, 1: True)
-        ...
+        if node.value:
+            self.emit(BC.Instr(BC.InstrCode.ldc, ['1']))
+        else:
+            self.emit(BC.Instr(BC.InstrCode.ldc, ['0']))
 
     @visit.register
     def _(self, node: ast.IdentifierExprNode):
         self.do_visit(node.identifier)
+        self.bc_load(node.identifier.name)
 
     @visit.register
     def _(self, node: ast.BinaryOpExprNode):
         # Hints:
         #  - You might find the arithm_ops and rel_ops dictionaries defined above helpful.
         #  - Also, remember the logical binary operators ('and' and 'or') and remember their short-circuiting.
-        self.do_visit(node.lhs)
-        self.do_visit(node.rhs)
+        
+        #leaves lhs and rhs on the stack
+        
+        l_end = BC.Label()
+        if node.op in rel_ops:
+            l_true = BC.Label()
+            self.do_visit(node.lhs)
+            self.do_visit(node.rhs)
+            self.emit(BC.Instr(rel_ops[node.op], [str(l_true)]))
+            self.emit(BC.Instr(BC.InstrCode.ldc, ["0"]))
+            self.emit(BC.Instr(BC.InstrCode.goto, [str(l_end)]))
+            self.emit_label(l_true)
+            self.emit(BC.Instr(BC.InstrCode.ldc, ["1"]))
+        elif node.op == Operator.And:
+            l_false = BC.Label()
+            self.do_visit(node.lhs)
+            self.emit(BC.Instr(BC.InstrCode.ifeq, [str(l_false)]))
+            self.do_visit(node.rhs)
+            self.emit(BC.Instr(BC.InstrCode.ifeq, [str(l_false)]))
+            self.emit(BC.Instr(BC.InstrCode.ldc, ["1"]))
+            self.emit(BC.Instr(BC.InstrCode.goto, [str(l_end)]))
+            self.emit_label(l_false)
+            self.emit(BC.Instr(BC.InstrCode.ldc, ["0"]))
+        elif node.op == Operator.Or:
+            l_false = BC.Label()
+            self.do_visit(node.lhs)
+            self.do_visit(node.rhs)
+            self.emit(BC.Instr(BC.InstrCode.iadd))
+            self.emit(BC.Instr(BC.InstrCode.ifeq, [str(l_false)]))
+            self.emit(BC.Instr(BC.InstrCode.ldc, ["1"]))
+            self.emit(BC.Instr(BC.InstrCode.goto, [str(l_end)]))
+            self.emit_label(l_false)
+            self.emit(BC.Instr(BC.InstrCode.ldc, ["0"]))
+        self.emit_label(l_end)
+
+        # iload lhs
+        # iload rhs
+        # if_icmpxx goto l1
+        # ldc 0
+        # goto end
+        # l1:
+        # ldc 1
+        # end
 
     @visit.register
     def _(self, node: ast.IfExprNode):
