@@ -248,16 +248,14 @@ class ICGVisitor(visitor.Visitor):
     @visit.register
     def _(self, node: ast.IdentifierExprNode):
         self.do_visit(node.identifier)
-        self.bc_load(node.identifier.name)
+        self.emit(self.bc_load(node.identifier.name))
 
     @visit.register
     def _(self, node: ast.BinaryOpExprNode):
         # Hints:
         #  - You might find the arithm_ops and rel_ops dictionaries defined above helpful.
         #  - Also, remember the logical binary operators ('and' and 'or') and remember their short-circuiting.
-        
-        #leaves lhs and rhs on the stack
-        
+                
         l_end = BC.Label()
         if node.op in rel_ops:
             l_true = BC.Label()
@@ -280,10 +278,12 @@ class ICGVisitor(visitor.Visitor):
             self.emit(BC.Instr(BC.InstrCode.ldc, ["0"]))
         elif node.op == Operator.Or:
             l_false = BC.Label()
+            l_true = BC.Label()
             self.do_visit(node.lhs)
+            self.emit(BC.Instr(BC.InstrCode.ifne, [str(l_true)]))
             self.do_visit(node.rhs)
-            self.emit(BC.Instr(BC.InstrCode.iadd))
             self.emit(BC.Instr(BC.InstrCode.ifeq, [str(l_false)]))
+            self.emit_label(l_true)
             self.emit(BC.Instr(BC.InstrCode.ldc, ["1"]))
             self.emit(BC.Instr(BC.InstrCode.goto, [str(l_end)]))
             self.emit_label(l_false)
@@ -292,39 +292,95 @@ class ICGVisitor(visitor.Visitor):
 
         # iload lhs
         # iload rhs
-        # if_icmpxx goto l1
+        # if_icmpxx l1
         # ldc 0
-        # goto end
+        # goto l_end
         # l1:
         # ldc 1
-        # end
+        # l_end
 
     @visit.register
     def _(self, node: ast.IfExprNode):
+        l_else = BC.Label()
+        l_end = BC.Label()
+
         self.do_visit(node.condition)
+        self.emit(BC.Instr(BC.InstrCode.ifeq, [str(l_else)]))
         self.do_visit(node.then_expr)
+        self.emit(BC.Instr(BC.InstrCode.goto, [str(l_end)]))
+        self.emit_label(l_else)
         self.do_visit(node.else_expr)
+        self.emit_label(l_end)
+        # iload condition
+        # ifeq l_else
+        # (visit then expr)
+        # goto l_end
+        # l_else
+        # (visit else expr)
+        # l_end
 
     @visit.register
     def _(self, node: ast.WhileStmtNode):
+        l_while = BC.Label()
+        l_end = BC.Label()
+
+        self.emit_label(l_while)
         self.do_visit(node.condition)
+        self.emit(BC.Instr(BC.InstrCode.ifeq, [str(l_end)]))
         for s in node.body:
             self.do_visit(s)
+        self.emit(BC.Instr(BC.InstrCode.goto, [str(l_while)]))
+        self.emit_label(l_end)
+
+        # l_while
+        # iload condition
+        # ifeq l_end
+        # (visit statements)
+        # goto l_while
+        # l_end
 
     @visit.register
     def _(self, node: ast.IfStmtNode):
         # Hints:
         #  - Do not worry if you end up creating some unnecessary labels (doing so might simplify your
         #    implementation a bit, e.g., by jumping to the 'else' part without checking if it exists).
-        self.do_visit(node.condition)
+        l_elifs = [BC.Label() for e in range(len(node.elifs)+1)]
+        l_end = BC.Label()
+        
+        self.do_visit(node.condition) #this leaves the condition on the stack
+        self.emit(BC.Instr(BC.InstrCode.ifeq, [str(l_elifs[0])]))
         for s in node.then_body:
             self.do_visit(s)
+        self.emit(BC.Instr(BC.InstrCode.goto, [str(l_end)]))
+
+        i = 0
         for e in node.elifs:
-            self.do_visit(e[0])
+            self.emit_label(l_elifs[i])
+            self.do_visit(e[0]) #leaves the condition on the stack
+            self.emit(BC.Instr(BC.InstrCode.ifeq, [str(l_elifs[i+1])]))
             for s in e[1]:
                 self.do_visit(s)
+            self.emit(BC.Instr(BC.InstrCode.goto, [str(l_end)]))
+            i += 1
+
+        self.emit_label(l_elifs[-1])
         for s in node.else_body:
             self.do_visit(s)
+        self.emit_label(l_end)
+        
+        # iload condition
+        # ifeq l_elif1
+        # (visit the stmts)
+        # goto l_end
+        # l_elif1
+        # iload condition1
+        # ifeq l_else
+        # (visit the stmts)
+        # goto l_end 
+        # l_else
+        # (visit the stmts)
+        # goto l_end
+        # 
 
     @visit.register
     def _(self, node: ast.AssignStmtNode):
@@ -335,9 +391,16 @@ class ICGVisitor(visitor.Visitor):
         #    for all but the last target.
 
         self.do_visit(node.expr)
+        for i in range(len(node.targets)-1):
+            self.emit(BC.Instr(BC.InstrCode.dup))
         for t in node.targets:
             # self.do_visit(t)
             if isinstance(t, ast.IdentifierExprNode):
-                ...
+                self.emit(self.bc_store(t.identifier.name))
             else:
                 assert False, "ERROR: Internal compiler error, should not happen."
+
+        # iload expr 
+        # dup (n-1 times)
+        # istore 0 (bc_store(t.identifier.name))
+        # 

@@ -25,6 +25,39 @@
   L_0:
     invokestatic Method t01 print (I)I
     pop
+    ldc 10
+    ineg
+    invokestatic Method t01 print (I)I
+    pop
+    ldc 1
+    ifeq L_1
+    ldc 0
+    goto L_2
+  L_1:
+    ldc 1
+  L_2:
+    pop
+    ldc 1
+    ifeq L_4
+    ldc 0
+    ifeq L_4
+    ldc 1
+    goto L_3
+  L_4:
+    ldc 0
+  L_3:
+    pop
+    ldc 0
+    ifne L_7
+    ldc 1
+    ifeq L_6
+  L_7:
+    ldc 1
+    goto L_5
+  L_6:
+    ldc 0
+  L_5:
+    pop
     return
 .end code
 .end method
