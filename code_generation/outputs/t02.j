@@ -24,22 +24,28 @@
 .code stack 20 locals 2  ; ['n', 'value']
     ldc 1
     istore 1
-  L_8:
+  L_12:
     iload 0
     ldc 1
-    if_icmpgt L_11
+    if_icmpgt L_15
     ldc 0
-    goto L_10
-  L_11:
+    goto L_14
+  L_15:
     ldc 1
-  L_10:
-    ifeq L_9
-  L_12:
+  L_14:
+    ifeq L_13
+    iload 1
+    iload 0
+    imul
+  L_16:
     istore 1
-  L_13:
+    iload 0
+    ldc 1
+    isub
+  L_17:
     istore 0
-    goto L_8
-  L_9:
+    goto L_12
+  L_13:
     iload 1
     ireturn
 .end code
@@ -49,18 +55,25 @@
 .code stack 20 locals 2  ; ['n']
     iload 0
     ldc 1
-    if_icmpgt L_17
+    if_icmpgt L_21
     ldc 0
-    goto L_16
-  L_17:
+    goto L_20
+  L_21:
     ldc 1
-  L_16:
-    ifeq L_14
-  L_18:
+  L_20:
+    ifeq L_18
+    iload 0
+    iload 0
+    ldc 1
+    isub
+  L_23:
+    invokestatic Method t02 fact_r (I)I
+    imul
+  L_22:
     ireturn
-    goto L_15
-  L_14:
-  L_15:
+    goto L_19
+  L_18:
+  L_19:
     ldc 1
     ireturn
 .end code

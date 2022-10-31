@@ -266,6 +266,10 @@ class ICGVisitor(visitor.Visitor):
             self.emit(BC.Instr(BC.InstrCode.goto, [str(l_end)]))
             self.emit_label(l_true)
             self.emit(BC.Instr(BC.InstrCode.ldc, ["1"]))
+        elif node.op in arithm_ops:
+            self.do_visit(node.lhs)
+            self.do_visit(node.rhs)
+            self.emit(BC.Instr(arithm_ops[node.op]))
         elif node.op == Operator.And:
             l_false = BC.Label()
             self.do_visit(node.lhs)

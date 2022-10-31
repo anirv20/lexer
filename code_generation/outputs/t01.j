@@ -22,6 +22,21 @@
 
 .method public static main : ([Ljava/lang/String;)V
 .code stack 20 locals 1  ; ['<args>']
+    ldc 10
+    ldc 20
+    iadd
+  L_1:
+    ldc 30
+    ldc 40
+    imul
+  L_4:
+    ldc 50
+    idiv
+  L_3:
+    ldc 5
+    irem
+  L_2:
+    isub
   L_0:
     invokestatic Method t01 print (I)I
     pop
@@ -30,33 +45,33 @@
     invokestatic Method t01 print (I)I
     pop
     ldc 1
-    ifeq L_1
+    ifeq L_5
     ldc 0
-    goto L_2
-  L_1:
-    ldc 1
-  L_2:
-    pop
-    ldc 1
-    ifeq L_4
-    ldc 0
-    ifeq L_4
-    ldc 1
-    goto L_3
-  L_4:
-    ldc 0
-  L_3:
-    pop
-    ldc 0
-    ifne L_7
-    ldc 1
-    ifeq L_6
-  L_7:
-    ldc 1
-    goto L_5
-  L_6:
-    ldc 0
+    goto L_6
   L_5:
+    ldc 1
+  L_6:
+    pop
+    ldc 1
+    ifeq L_8
+    ldc 0
+    ifeq L_8
+    ldc 1
+    goto L_7
+  L_8:
+    ldc 0
+  L_7:
+    pop
+    ldc 0
+    ifne L_11
+    ldc 1
+    ifeq L_10
+  L_11:
+    ldc 1
+    goto L_9
+  L_10:
+    ldc 0
+  L_9:
     pop
     return
 .end code
